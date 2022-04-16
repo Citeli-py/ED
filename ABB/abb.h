@@ -5,13 +5,12 @@
 /*
 1- Ler uma árvore de um arquivo;
 2- Imprimir a árvore (pré-ordem, em-ordem, pós-ordem e em largura)
-3- Verificar se um elemnto x existe
-4- Contar o número de elementos na árvore
-5- Imprimir os nós folhas
-6- Verificar se uma árvore está balanceada
-7- Verificar se uma árvore é cheia
-8- Imprimir o nivel de um nó
-9- Sair*/
+3- Verificar se um elemento x existe
+4- Imprimir o nivel de um nó x
+5- Imprimir as folhas menores que um valor x
+6- Inserir um nó x na árvore
+7- Remover um nó x da árvore
+8- Sair*/
 
 typedef struct arvore
 {
@@ -74,26 +73,47 @@ void Imprimir_pos(arvore *a) //2- Imprimir a árvore (pós-ordem)
     }
 }
 
-void Imprime_nivel(arvore *a, int x, int nivel)
+int Altura(arvore *a)
 {
-    if(a!=NULL)
+    if(a == NULL)
+        return 0;
+    else
     {
-        if(x == nivel)
-            printf("%d ", a->info);
+        int he = Altura(a->esq); //Altura da esquerda
+        int hd = Altura(a->dir); //Altura da direita
+        if(he>hd)
+            return he+1;
         else
-        {
-            Imprime_nivel(a->esq, x, nivel+1);
-            Imprime_nivel(a->dir, x, nivel+1);
-        }
+            return hd+1;
     }
 }
 
-void Imprime_largura(arvore *a)
+void inc(int *pos, int size) //Incremento das posições 
 {
-    for(int i=0; i<Altura(a); i++)
+    *pos = (*pos+1)%size;
+}
+
+void Imprime_largura(arvore *a) //2- Imprimir a árvore (pós-ordem)
+{
+    int size = pow(2,Altura(a));
+    arvore *vet[size];
+    int posFila=0, tamFila=1;
+    vet[0] = a;
+    while(posFila<tamFila)
     {
-        printf("\n");
-        Imprime_nivel(a, i, 0);
+        arvore *aux = vet[posFila];
+        inc(&posFila, size);
+        printf("%d ", aux->info);
+        if(aux->esq != NULL)
+        {
+            vet[tamFila] = aux->esq;
+            inc(&tamFila, size);
+        }
+        if(aux->dir != NULL)
+        {
+            vet[tamFila] = aux->dir;
+            inc(&tamFila, size);
+        }
     }
 }
 
@@ -137,82 +157,93 @@ int Existe(arvore *a, int num) //3- Verificar se um elemnto x existe
             return 1;
         else
         {
-            if(Existe(a->esq, num)==1)
-                return 1;
+            if(num < a->info)
+                return Existe(a->esq, num);
             return Existe(a->dir, num);
         }
     }
 }
 
-int ContarNos(arvore *a) //4- Contar o número de elementos na árvore
-{
-    if(a == NULL)
-        return 0;
-    else
-        return 1 + ContarNos(a->esq) + ContarNos(a->dir);
-}
-
-void Folhas(arvore *a) //5- Imprimir os nós folhas
+void Folhas(arvore *a, int num) //5- Imprimir as folhas menores que um valor x
 {
     if(a != NULL)
     {
-        if(a->esq == NULL && a->dir == NULL)
+        if(a->esq == NULL && a->dir == NULL && a->info < num)
             printf("%d ", a->info);
-        Folhas(a->esq);
-        Folhas(a->dir);
-    }
-}
-
-int Altura(arvore *a)
-{
-    if(a == NULL)
-        return 0;
-    else
-    {
-        int he = Altura(a->esq); //Altura da esquerda
-        int hd = Altura(a->dir); //Altura da direita
-        if(he>hd)
-            return he+1;
+        
+        else if(num <= a->info)
+            Folhas(a->esq, num);
         else
-            return hd+1;
+        {
+            Folhas(a->esq, num);
+            Folhas(a->dir, num);
+        }
     }
 }
 
-int Balanceada(arvore *a) //6- Verificar se uma árvore está balanceada
-{
-    if(a == NULL)
-        return 1;
-    else
-    {
-        int he = Altura(a->esq);
-        int hd = Altura(a->dir);
-        if(abs(he-hd)<=1)
-            return Balanceada(a->esq)*Balanceada(a->dir);
-        else
-            return 0;
-    }
-}
-
-int Cheia(arvore *a) //7- Verificar se uma árvore é cheia
-{
-    // nos = 2^h - 1
-    if(ContarNos(a) == pow(2, Altura(a))-1)
-        return 1;
-    return 0;
-}
-
-void NivelNo(arvore *a, int no, int nivel) //8- Imprimir o nivel de um nó
+void NivelNo(arvore *a, int no, int nivel) //4- Imprimir o nivel de um nó x
 {
     if(a != NULL)
     {
         if(a->info == no)
             printf("Nivel: %d", nivel);
-        else
-        {
+        else if(no < a->info)
             NivelNo(a->esq, no, nivel+1);
+        else
             NivelNo(a->dir, no, nivel+1);
-        }
     }
+}
+
+arvore *inserir(arvore *a, int num)
+{
+    if(a==NULL)
+    {
+        a = (arvore*) malloc(sizeof(arvore));
+        a->info=num;
+        a->esq = NULL;
+        a->dir = NULL;
+    }
+    else if(num<=a->info)
+        a->esq = inserir(a->esq, num);
+    else
+        a->dir = inserir(a->dir, num);
+    return a;
+}
+
+arvore *remover(arvore *a, int num)
+{
+    if(a!=NULL)
+        if(a->info==num)
+            if(a->esq==NULL && a->dir==NULL)
+            {
+                free(a);
+                return NULL;
+            }
+            else if(a->esq==NULL)
+            {
+                arvore *aux = a->dir;
+                free(a);
+                return aux;
+            }
+            else if(a->dir==NULL)
+            {
+                arvore *aux = a->esq;
+                free(a);
+                return aux;
+            }
+            else
+            {
+                arvore *aux=a->esq;
+                while(aux->dir!=NULL)
+                    aux =aux->dir;
+                a->info = aux->info;
+                a->esq=remover(a->esq, aux->info);
+            }
+        else if(num<a->info)
+            a->esq = remover(a->esq,num);
+        else
+            a->dir = remover(a->dir, num);
+    return a;
 }
 
 void libera_arvore(arvore *a)
